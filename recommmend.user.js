@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          中国科学技术大学图书馆豆瓣读书及荐购插件
 // @namespace     http://lib.ustc.edu.cn/
-// @description   豆瓣读书页面中显示图书馆借阅信息 改自http://userscripts.org/scripts/show/138107 添加了在图书馆没有图书时，提供一个链接，点击该链接即可完成推荐购书，不需要填写表单 
+// @description   豆瓣读书页面中显示图书馆借阅信息 改自http://userscripts.org/scripts/show/138107 在检索到没有相关图书时，提供“荐书”的链接，通过点击该链接即可完成荐书。 
 // @version	      v1.4
 // @grant 	GM_xmlhttpRequest
 // @grant 	GM_log
