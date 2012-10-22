@@ -13,9 +13,9 @@ var title = document.title;
 
 // subject title
 var keyword1 = title.replace( '(豆瓣)', '' ).trim(); 
-var keyword2 = encodeURIComponent( keyword1 );
+var book_title = encodeURIComponent( keyword1 );
 
-/*//获取书的详细信息bookDetail，并去除bookDetail内部的空白字符，方便正则表达式的书写
+//获取书的详细信息bookDetail，并去除bookDetail内部的空白字符，方便正则表达式的书写
 var info = document.getElementById("info")
 var bookDetail = info.textContent
 
@@ -24,11 +24,15 @@ var bookDetail = bookDetail.replace(regSpace, "")
 //GM_log(bookDetail)
 
 //利用正则从bookDetail中取出所需的书的相关信息
-var reg = /.*作者:(.*)出版社:(.*)出版年:([\d\-]+)页数:\s*\d+定价:.*ISBN:(\d+)/
+//var reg = /.*作者:(.*)出版社:(.*)出版年:([\d\-]+)页数:\s*\d+定价:.*ISBN:(\d+)/
+var reg = /.*ISBN:(\d{13})/
 var result = reg.exec(bookDetail)
 //GM_log(result)
+var isbn = result[1]
+var book_isbn = encodeURIComponent( isbn );
 
-if(result)
+
+/*if(result)
 {
     var author = result[1]
     //把author里面有可能会有的译者给去掉
@@ -44,11 +48,13 @@ if(result)
 
 // lib search url
 var url_lib = 'http://opac.lib.ustc.edu.cn/opac/';
-var url_search = 'http://opac.lib.ustc.edu.cn/opac/openlink.php?strText=' + keyword2 + '&strSearchType=title';
+var url_search = 'http://opac.lib.ustc.edu.cn/opac/openlink.php?strText=' + book_title + '&strSearchType=title';
+
+var url_search_isbn = 'http://opac.lib.ustc.edu.cn/opac/openlink.php?strText=' + book_isbn + '&strSearchType=isbn';
 
 var html_title = '<div class="da3" style="margin-bottom:0px;padding-bottom:1px;"><img src="http://lib.ustc.edu.cn/lib/favicon.ico" width="15px;" height="15px;" style="margin-bottom:-2px;" /><b><a href="http://lib.ustc.edu.cn" target="_blank" style="font-size:medium">中国科学技术大学图书馆</a></b></div>';
 
-var html_suggest_title = '<div class="da3" style="margin-bottom:0px;padding-bottom:1px;"><img src="http://lib.ustc.edu.cn/lib/favicon.ico" width="15px;" height="15px;" style="margin-bottom:-2px;" /><b><a href="http://lib.ustc.edu.cn" target="_blank" style="font-size:medium">中国科学技术大学图书馆</a></b></div>';
+var html_recommend_title = '<div class="da3" style="margin-bottom:0px;padding-bottom:1px;"><img src="http://lib.ustc.edu.cn/lib/favicon.ico" width="15px;" height="15px;" style="margin-bottom:-2px;" /><b><a href="http://lib.ustc.edu.cn" target="_blank" style="font-size:medium">中国科学技术大学图书馆</a></b></div>';
 
 var html_body_start = '<div class="indent" style="padding-left:5px;border:1px #F4F4EC solid;"><ul class="bs">';
 var html_body_yes = '';
@@ -56,22 +62,43 @@ var html_body_no = '<li>本馆没有您检索的馆藏书目</li>';
 
 var html_body_end = '</ul>';
 // "more" button if the items has more than 5
-var html_body_endmore = '<div style="text-align:right; padding:5px 10px 5px 0px;"><a href="http://opac.lib.ustc.edu.cn/opac/openlink.php?strText=' +     keyword2 + '&strSearchType=title" target="_blank">更多&hellip;</a></div>';
+var html_body_endmore = '<div style="text-align:right; padding:5px 10px 5px 0px;"><a href="http://opac.lib.ustc.edu.cn/opac/openlink.php?strText=' +     book_title + '&strSearchType=title" target="_blank">更多&hellip;</a></div>';
 var html_body_endend = '</div>';
 
-var divprepend = function(cls,innerhtml){
+var html_body_empty = '<div></div>';
+
+
+var divprepend = function(cls,innerhtml,div_id,div_class){
     var obj = document.createElement("div");
+    obj.setAttribute('id', div_id);
+    obj.setAttribute('class', div_class);
     var clsobj = document.getElementsByClassName(cls)[0];
     var fstchild = clsobj.firstElementChild;
 
-    obj.innerHTML = innerhtml;
+    obj.innerHTML = innerhtml; 
     fstchild.parentNode.insertBefore(obj,fstchild)
 }
 
-var extractinfo = function(responsetext){
-    var regtitlenav  = new RegExp("检索条件：题名=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+
+//把检索书目和推荐图书放在两个具有不同id的div标签里，方便对他们进行操作
+divprepend('aside',html_body_empty,'ustc_lib', 'ustc_lib');
+divprepend('aside',html_body_empty,'ustc_recommend', 'ustc_recommend');
+
+document.getElementById('ustc_recommend').style.display = "none";
+
+var extractinfo = function(responsetext, type){
+
+    if(type == 'title')
+    {
+        var regtitlenav  = new RegExp("检索条件：题名=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+    }
+    else if(type == 'isbn')
+    {
+        var regtitlenav  = new RegExp("检索条件：ISBN/ISSN==<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+    }
     var mtitlenav = regtitlenav.exec(responsetext);
     
+    //GM_log(mtitlenav[0]);
     if(mtitlenav == null){
         return {
             title: null,
@@ -85,6 +112,7 @@ var extractinfo = function(responsetext){
         var bookitems = [];
         var title = mtitlenav[1];
         var count = mtitlenav[2];
+
         while( (mbookitems = regbookitems.exec(responsetext)) !== null)
         {
             bookitems.push({
@@ -108,6 +136,21 @@ var extractinfo = function(responsetext){
     }
 }
 
+GM_xmlhttpRequest({
+    method: 'GET',
+    url: url_search_isbn,
+    onload: function(responseDetails) {
+        var bookinfo = extractinfo(responseDetails.responseText, 'isbn');
+        GM_log(bookinfo.title)
+        GM_log(bookinfo.count)
+        if(bookinfo.count > 0){
+            document.getElementById('ustc_recommend').style.display = "none";
+        }
+        else{
+            document.getElementById('ustc_recommend').style.display = "block";
+        }
+    }
+}); 
 
 var url = document.URL;
 
@@ -126,9 +169,9 @@ GM_xmlhttpRequest({
 	var isbn = book_detail["isbn13"];
 	var pub = book_detail["publisher"];
 	var date = book_detail["pubdate"];
-	var url_suggest = 'http://opac.lib.ustc.edu.cn/asord/asord_redr.php?click_type=commit&title=' + keyword1 + '&a_name=' + author +'%8B&b_pub=' + pub + '&b_date=' + date + '&b_type=C&b_isbn=' + isbn
-	var html_suggest_book = '<li> <a href="' + url_suggest + '" target="_blank">推荐购书</a><span style="margin-left:10px">'
-	divprepend('aside',html_suggest_title+html_body_start+html_suggest_book+html_body_end+html_body_endend);
+	var url_recommend = 'http://opac.lib.ustc.edu.cn/asord/asord_redr.php?click_type=commit&title=' + keyword1 + '&a_name=' + author +'%8B&b_pub=' + pub + '&b_date=' + date + '&b_type=C&b_isbn=' + isbn
+	var html_recommend_book = '<li> <a href="' + url_recommend + '" target="_blank">推荐购书</a><span style="margin-left:10px">'
+	divprepend('ustc_recommend',html_recommend_title+html_body_start+html_recommend_book+html_body_end+html_body_endend);
     }
 }); 
 
@@ -137,7 +180,7 @@ GM_xmlhttpRequest({
     method: 'GET',
     url: url_search,
     onload: function(responseDetails) {
-        var bookinfo = extractinfo(responseDetails.responseText);
+        var bookinfo = extractinfo(responseDetails.responseText, 'title');
         if(bookinfo.count > 0){
             html_body_yes += '<li>题名： <strong>' + keyword1 + '</strong><span style="margin-left:10px"> 结果数： <strong>' + bookinfo.count + '</strong></span</li>';
 
@@ -149,12 +192,12 @@ GM_xmlhttpRequest({
             }
 
             if(bookinfo.count > 5)
-                divprepend('aside',html_title+html_body_start+html_body_yes+html_body_end+html_body_endmore+html_body_endend);
+                divprepend('ustc_lib',html_title+html_body_start+html_body_yes+html_body_end+html_body_endmore+html_body_endend);
             else
-                divprepend('aside',html_title+html_body_start+html_body_yes+html_body_end+html_body_endend);
+                divprepend('ustc_lib',html_title+html_body_start+html_body_yes+html_body_end+html_body_endend);
         }
         else{
-            divprepend('aside',html_title+html_body_start+html_body_no+html_body_end+html_body_endend);
+            divprepend('ustc_lib',html_title+html_body_start+html_body_no+html_body_end+html_body_endend);
         }
     }
 }); 
