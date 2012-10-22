@@ -2,7 +2,7 @@
 // @name          中国科学技术大学图书馆豆瓣读书及荐购插件
 // @namespace     http://lib.ustc.edu.cn/
 // @description   豆瓣读书页面中显示图书馆借阅信息 改自http://userscripts.org/scripts/show/138107 添加了在图书馆没有图书时，提供一个链接，点击该链接即可完成推荐购书，不需要填写表单 
-// @version	      v1.3
+// @version	      v1.4
 // @grant 	GM_xmlhttpRequest
 // @grant 	GM_log
 // @include       http://book.douban.com/subject/*
@@ -21,30 +21,12 @@ var bookDetail = info.textContent
 
 var regSpace = /\s/g;
 var bookDetail = bookDetail.replace(regSpace, "")
-//GM_log(bookDetail)
 
-//利用正则从bookDetail中取出所需的书的相关信息
-//var reg = /.*作者:(.*)出版社:(.*)出版年:([\d\-]+)页数:\s*\d+定价:.*ISBN:(\d+)/
 var reg = /.*ISBN:(\d{13})/
 var result = reg.exec(bookDetail)
-//GM_log(result)
+
 var isbn = result[1]
 var book_isbn = encodeURIComponent( isbn );
-
-
-/*if(result)
-{
-    var author = result[1]
-    //把author里面有可能会有的译者给去掉
-    author = author.split("译者")[0]
-    var pub = result[2]
-    var date = result[3]
-    var isbn = result[4]
-    //GM_log(author)
-
-}*/
-
-
 
 // lib search url
 var url_lib = 'http://opac.lib.ustc.edu.cn/opac/';
@@ -98,7 +80,7 @@ var extractinfo = function(responsetext, type){
     }
     var mtitlenav = regtitlenav.exec(responsetext);
     
-    //GM_log(mtitlenav[0]);
+    
     if(mtitlenav == null){
         return {
             title: null,
@@ -136,27 +118,13 @@ var extractinfo = function(responsetext, type){
     }
 }
 
-GM_xmlhttpRequest({
-    method: 'GET',
-    url: url_search_isbn,
-    onload: function(responseDetails) {
-        var bookinfo = extractinfo(responseDetails.responseText, 'isbn');
-        GM_log(bookinfo.title)
-        GM_log(bookinfo.count)
-        if(bookinfo.count > 0){
-            document.getElementById('ustc_recommend').style.display = "none";
-        }
-        else{
-            document.getElementById('ustc_recommend').style.display = "block";
-        }
-    }
-}); 
+
 
 var url = document.URL;
 
-var id = url.split('/')[4]
+var douban_id = url.split('/')[4]
 
-var douban_api_url= 'https://api.douban.com/v2/book/'+ id
+var douban_api_url= 'https://api.douban.com/v2/book/'+ douban_id
 
 GM_xmlhttpRequest({
     method: 'GET',
@@ -182,6 +150,8 @@ GM_xmlhttpRequest({
     onload: function(responseDetails) {
         var bookinfo = extractinfo(responseDetails.responseText, 'title');
         if(bookinfo.count > 0){
+            document.getElementById('ustc_recommend').style.display = "none";
+
             html_body_yes += '<li>题名： <strong>' + keyword1 + '</strong><span style="margin-left:10px"> 结果数： <strong>' + bookinfo.count + '</strong></span</li>';
 
             for(var i = 0; i < bookinfo.count; i++){
@@ -197,8 +167,8 @@ GM_xmlhttpRequest({
                 divprepend('ustc_lib',html_title+html_body_start+html_body_yes+html_body_end+html_body_endend);
         }
         else{
+            document.getElementById('ustc_recommend').style.display = "block";
             divprepend('ustc_lib',html_title+html_body_start+html_body_no+html_body_end+html_body_endend);
         }
     }
 }); 
-
