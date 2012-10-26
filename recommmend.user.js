@@ -2,11 +2,16 @@
 // @name          中国科学技术大学图书馆豆瓣读书及荐购插件
 // @namespace     http://lib.ustc.edu.cn/
 // @description   豆瓣读书页面中显示图书馆借阅信息 改自http://userscripts.org/scripts/show/138107 在检索到没有相关图书时，提供“荐书”的链接，通过点击该链接即可完成荐书。 
-// @version	      v1.4
+// @version	      v1.5
 // @grant 	GM_xmlhttpRequest
 // @grant 	GM_log
+// @grant   GM_openInTab
 // @include       http://book.douban.com/subject/*
 // ==/UserScript==
+
+var sel = function(selector) {
+    return document.getElementById(selector);
+}
 
 var title = document.title;
 
@@ -24,7 +29,7 @@ var html_title = '<div class="da3" style="margin-bottom:0px;padding-bottom:1px;"
 
 var html_recommend_title = '<div class="da3" style="margin-bottom:0px;padding-bottom:1px;"><img src="http://lib.ustc.edu.cn/lib/favicon.ico" width="15px;" height="15px;" style="margin-bottom:-2px;" /><b><a href="http://lib.ustc.edu.cn" target="_blank" style="font-size:medium">中国科学技术大学图书馆</a></b></div>';
 
-var html_body_start = '<div class="indent" style="padding-left:5px;border:1px #F4F4EC solid;"><ul class="bs">';
+var html_body_start = '<div id = "ustc_search_result_html" class="indent" style="padding-left:15px;border:1px #F4F4EC solid;"><ul class="bs">';
 var html_body_yes = '';
 var html_body_no = '<li>本馆没有您检索的馆藏书目</li>';
 
@@ -35,6 +40,7 @@ var html_body_endend = '</div>';
 
 var html_body_empty = '<div></div>';
 
+var html_recommend_book = '<li> <a id="ustc_recommend_book" href="" target="_blank">推荐购书</a><span style="margin-left:10px">'
 
 var divprepend = function(cls,innerhtml,div_id,div_class){
     var obj = document.createElement("div");
@@ -49,10 +55,26 @@ var divprepend = function(cls,innerhtml,div_id,div_class){
 
 
 //把检索书目和推荐图书放在两个具有不同id的div标签里，方便对他们进行操作
+//添加所需的div标签，以后只对这里添加的标签进行修改
 divprepend('aside',html_body_empty,'ustc_lib', 'ustc_lib');
 divprepend('ustc_lib',html_body_empty,'ustc_recommend', 'ustc_recommend');
+divprepend('ustc_lib',html_body_empty,'ustc_search_result', 'ustc_search_result');
 
-document.getElementById('ustc_recommend').style.display = "none";
+divprepend('ustc_recommend',html_body_start+html_recommend_book+html_body_end+html_body_endend);
+divprepend('ustc_search_result',html_title+html_body_start+html_body_endend);
+sel('ustc_recommend').style.display = "none";
+
+//添加快捷键Alt+A来完成荐书操作。
+document.onkeydown = function(event)
+{
+    if(event.keyCode == 65 && !event.ctrlKey && event.altKey && !event.shiftKey)
+    {
+        GM_log("Here!");
+        var url_href = sel('ustc_recommend_book').href;
+        GM_openInTab(url_href);
+        event.preventDefault();
+    }
+}
 
 /*
  * type指的是查询的方式，是通过题名，还是ISBN，由于最终ISBN没有使用，所以只要只用到了title
@@ -133,9 +155,8 @@ GM_xmlhttpRequest({
             GM_log("Matched!!")
             type = 'U';
         }
-    	var url_recommend = 'http://opac.lib.ustc.edu.cn/asord/asord_redr.php?click_type=commit&title=' + keyword1 + '&a_name=' + author +'%8B&b_pub=' + pub + '&b_date=' + date + '&b_type='+ type + '&b_isbn=' + isbn
-    	var html_recommend_book = '<li> <a href="' + url_recommend + '" target="_blank">推荐购书</a><span style="margin-left:10px">'
-    	divprepend('ustc_recommend',html_body_start+html_recommend_book+html_body_end+html_body_endend);
+    	var url_recommend = 'http://opac.lib.ustc.edu.cn/asord/asord_redr.php?click_type=commit&title=' + keyword1 + '&a_name=' + author +'%8B&b_pub=' + pub + '&b_date=' + date + '&b_type='+ type + '&b_isbn=' + isbn;
+        sel('ustc_recommend_book').href = url_recommend;
     }
 }); 
 
@@ -146,7 +167,7 @@ GM_xmlhttpRequest({
     onload: function(responseDetails) {
         var bookinfo = extractinfo(responseDetails.responseText, 'title');
         if(bookinfo.count > 0){
-            document.getElementById('ustc_recommend').style.display = "none";
+            sel('ustc_recommend').style.display = "none";
 
             html_body_yes += '<li>题名： <strong>' + keyword1 + '</strong><span style="margin-left:10px"> 结果数： <strong>' + bookinfo.count + '</strong></span</li>';
 
@@ -158,13 +179,13 @@ GM_xmlhttpRequest({
             }
 
             if(bookinfo.count > 5)
-                divprepend('ustc_lib',html_title+html_body_start+html_body_yes+html_body_end+html_body_endmore+html_body_endend);
+                sel('ustc_search_result_html').innerHTML = html_body_yes+html_body_end+html_body_endmore;
             else
-                divprepend('ustc_lib',html_title+html_body_start+html_body_yes+html_body_end+html_body_endend);
+                sel('ustc_search_result_html').innerHTML = html_body_yes+html_body_end;
         }
         else{
-            document.getElementById('ustc_recommend').style.display = "block";
-            divprepend('ustc_lib',html_title+html_body_start+html_body_no+html_body_end+html_body_endend);
+            sel('ustc_recommend').style.display = "block";
+            sel('ustc_search_result_html').innerHTML = html_body_no+html_body_end;
         }
     }
 }); 
