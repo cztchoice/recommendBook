@@ -101,14 +101,15 @@ document.onkeydown = function(event)
 }
 
 /*
- * type指的是查询的方式，是通过题名，还是ISBN，由于最终ISBN没有使用，所以只要只用到了title
+ * type指的是查询的方式，是通过题名，还是ISBN
 */
 var extractinfo = function(responsetext, type){
 
     //GM_log("in extractinfo type");
     if(type == 'title')
     {
-        var regtitlenav  = new RegExp("检索条件：题名=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+        //var regtitlenav  = new RegExp("检索条件：题名=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+        var regtitlenav = new RegExp("检索到\\s*<strong\\s*class=\"red\">(\\d+)</strong>\\s*条\\s*检索条件：题名=<font color=\"red\">(.*)</font>\\s*</font>\\s*的结果");
     }
     else if(type == 'isbn')
     {
@@ -117,7 +118,7 @@ var extractinfo = function(responsetext, type){
     }
     var mtitlenav = regtitlenav.exec(responsetext);
     
-    
+    GM_log(mtitlenav[0]);
     if(mtitlenav == null){
         return {
             title: null,
@@ -191,6 +192,7 @@ GM_xmlhttpRequest({
     method: 'GET',
     url: url_search,
     onload: function(responseDetails) {
+        GM_log(responseDetails.responseText)
         var bookinfo = extractinfo(responseDetails.responseText, 'title');
         if(bookinfo.count > 0){
             //sel('ustc_recommend').style.display = "none";
