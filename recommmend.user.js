@@ -2,7 +2,7 @@
 // @name          中国科学技术大学图书馆豆瓣读书及荐购插件
 // @namespace     http://lib.ustc.edu.cn/
 // @description   豆瓣读书页面中显示图书馆借阅信息 改自http://userscripts.org/scripts/show/138107 在检索到没有相关图书时，提供“荐书”的链接，通过点击该链接即可完成荐书。 
-// @version	      v1.6
+// @version	      v1.7
 // @grant 	GM_xmlhttpRequest
 // @grant 	GM_log
 // @grant   GM_openInTab
