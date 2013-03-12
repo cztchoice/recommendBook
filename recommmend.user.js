@@ -108,17 +108,21 @@ var extractinfo = function(responsetext, type){
     //GM_log("in extractinfo type");
     if(type == 'title')
     {
-        //var regtitlenav  = new RegExp("检索条件：题名=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
-        var regtitlenav = new RegExp("检索到\\s*<strong\\s*class=\"red\">(\\d+)</strong>\\s*条\\s*检索条件：题名=<font color=\"red\">(.*)</font>\\s*</font>\\s*的结果");
+        //var regtitlenav = new RegExp("<p style=\"font-size:14px;\">检索到\\s*<strong\\s*class=\"red\">(\\d+)</strong>\\s*条\\s*检索条件：题名=<font color=\"red\">(.*)</font>\\s*</font>\\s*的结果");
+        var regtitlenav = /.*检索到\s+<strong\s+class="red">(\d+)<\/strong>\s+条\s+题名=<font\s+color="red">(.*)<\/font>\s+<\/font>\s+的结果.*/;
     }
     else if(type == 'isbn')
     {
-        var regtitlenav  = new RegExp("检索条件：ISBN/ISSN=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+        //var regtitlenav  = new RegExp("检索条件：ISBN/ISSN=<font color=\"red\">(.*)</font>\\s+</font>\\s+结果数：<strong class=\"red\">(\\d+)</strong>");
+        var regtitlenav = /.*检索到\s+<strong\s+class="red">(\d+)<\/strong>\s+条\s+ISBN\/ISSN=<font\s+color="red">(\d+)<\/font>\s+<\/font>\s+的结果.*/;
         //GM_log("in ibsn type");
     }
     var mtitlenav = regtitlenav.exec(responsetext);
     
-    GM_log(mtitlenav[0]);
+    //GM_log(mtitlenav[0]);
+    //GM_log(mtitlenav[1]);
+    //GM_log(mtitlenav[2]);
+
     if(mtitlenav == null){
         return {
             title: null,
@@ -127,14 +131,17 @@ var extractinfo = function(responsetext, type){
         };
     }
     else{
-        var regbookitems = new RegExp("<div class=\"list_books\" id=\"list_books\">\\s+<h3><span class=\"doc_type_class\">(.*)</span><a href=\"(.*)\">\\d\.(.*)</a>\\s+(.*)\\s+</h3>\\s+<p>\\s+<span><strong>馆藏复本：</strong>(\\d+) <br />\\s+<strong>可借复本：</strong>(\\d+) </span>\\s+(.*)<br />\\s+(.*)\\s+</p>\\s+</div>","g");
+        //var regbookitems = new RegExp("<div class=\"list_books\" id=\"list_books\">\\s+<h3><span class=\"doc_type_class\">(.*)</span><a href=\"(.*)\">\\d\.(.*)</a>\\s+(.*)\\s+</h3>\\s+<p>\\s+<span><strong>馆藏复本：</strong>(\\d+) <br />\\s+<strong>可借复本：</strong>(\\d+) </span>\\s+(.*)<br />\\s+(.*)\\s+</p>\\s+</div>","g");
+
+        var regbookitems = /<h3><span>(.*)<\/span><a href="(.*)"\s*>\d+\.(.*)<\/a>\s*(.*)\s*<\/h3>\s*<p>\s*<span>馆藏复本：(\d+)\s*<br>\s*可借复本：(\d+)\s*<\/span>\s*(.*)\s*<br \/>\s*(.*)\s<br \/>/g;
         var mbookitems;
         var bookitems = [];
-        var title = mtitlenav[1];
-        var count = mtitlenav[2];
+        var title = mtitlenav[2];
+        var count = mtitlenav[1];
 
         while( (mbookitems = regbookitems.exec(responsetext)) !== null)
         {
+            //GM_log(mbookitems[0])
             bookitems.push({
                 doc_type:       mbookitems[1],
                 book_url:       mbookitems[2],
@@ -192,8 +199,9 @@ GM_xmlhttpRequest({
     method: 'GET',
     url: url_search,
     onload: function(responseDetails) {
-        GM_log(responseDetails.responseText)
+        //GM_log(responseDetails.responseText)
         var bookinfo = extractinfo(responseDetails.responseText, 'title');
+        GM_log(bookinfo.count);
         if(bookinfo.count > 0){
             //sel('ustc_recommend').style.display = "none";
 
